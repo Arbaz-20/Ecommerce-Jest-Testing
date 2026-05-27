@@ -22,7 +22,7 @@ const SORT_COLUMN_MAP: Record<NonNullable<UserListQuery['sortBy']>, string> = {
 };
 
 export class UserRepository implements IUserRepository {
-  private mapRow(row: UserRow): User {
+  private MapRow(row: UserRow): User {
     return {
       id: row.id,
       email: row.email,
@@ -36,12 +36,12 @@ export class UserRepository implements IUserRepository {
     };
   }
 
-  async FindById(id: string): Promise<User | null> {
+  public async FindById(id: string): Promise<User | null> {
     const row = await getOne<UserRow>('SELECT * FROM users WHERE id = $1', [id]);
-    return row ? this.mapRow(row) : null;
+    return row ? this.MapRow(row) : null;
   }
 
-  async FindAll(options: UserListQuery): Promise<{ items: User[]; total: number }> {
+  public async FindAll(options: UserListQuery): Promise<{ items: User[]; total: number }> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
@@ -80,20 +80,20 @@ export class UserRepository implements IUserRepository {
     ]);
 
     return {
-      items: dataResult.rows.map((r) => this.mapRow(r)),
+      items: dataResult.rows.map((r) => this.MapRow(r)),
       total: parseInt(countResult.rows[0].count, 10),
     };
   }
 
-  async FindByEmail(email: string): Promise<User | null> {
+  public async FindByEmail(email: string): Promise<User | null> {
     const row = await getOne<UserRow>(
       'SELECT * FROM users WHERE email = $1',
       [email.toLowerCase()]
     );
-    return row ? this.mapRow(row) : null;
+    return row ? this.MapRow(row) : null;
   }
 
-  async Create(
+  public async Create(
     email: string,
     passwordHash: string,
     firstName: string,
@@ -106,10 +106,10 @@ export class UserRepository implements IUserRepository {
        RETURNING *`,
       [email.toLowerCase(), passwordHash, firstName, lastName, role]
     );
-    return this.mapRow(result.rows[0]);
+    return this.MapRow(result.rows[0]);
   }
 
-  async UpdateProfile(
+  public async UpdateProfile(
     id: string,
     data: { firstName?: string; lastName?: string }
   ): Promise<User | null> {
@@ -135,10 +135,10 @@ export class UserRepository implements IUserRepository {
       `UPDATE users SET ${fields.join(', ')} WHERE id = $${idx} RETURNING *`,
       values
     );
-    return result.rows[0] ? this.mapRow(result.rows[0]) : null;
+    return result.rows[0] ? this.MapRow(result.rows[0]) : null;
   }
 
-  async Deactivate(id: string): Promise<boolean> {
+  public async Deactivate(id: string): Promise<boolean> {
     const result = await query(
       'UPDATE users SET is_active = false, updated_at = NOW() WHERE id = $1',
       [id]

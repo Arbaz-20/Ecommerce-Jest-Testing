@@ -27,13 +27,13 @@ export class PaymentService implements IPaymentService {
     this.gateway = gateway;
   }
 
-  async GetPaymentById(id: string): Promise<Payment> {
+  public async GetPaymentById(id: string): Promise<Payment> {
     const payment = await this.paymentRepo.FindById(id);
     if (!payment) throw new NotFoundError('Payment');
     return payment;
   }
 
-  async GetAllPayments(options: PaymentListQuery): Promise<PaginatedResponse<Payment>> {
+  public async GetAllPayments(options: PaymentListQuery): Promise<PaginatedResponse<Payment>> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const { items, total } = await this.paymentRepo.FindAll({ ...options, page, pageSize });
@@ -46,13 +46,13 @@ export class PaymentService implements IPaymentService {
     };
   }
 
-  async GetPaymentByOrderId(orderId: string): Promise<Payment> {
+  public async GetPaymentByOrderId(orderId: string): Promise<Payment> {
     const payment = await this.paymentRepo.FindByOrderId(orderId);
     if (!payment) throw new NotFoundError('Payment for order');
     return payment;
   }
 
-  async ProcessPayment(dto: ProcessPaymentDTO): Promise<Payment> {
+  public async ProcessPayment(dto: ProcessPaymentDTO): Promise<Payment> {
     const order = await this.orderRepo.FindById(dto.orderId);
     if (!order) throw new NotFoundError('Order');
 
@@ -112,7 +112,7 @@ export class PaymentService implements IPaymentService {
     }
   }
 
-  async RefundPayment(paymentId: string): Promise<Payment> {
+  public async RefundPayment(paymentId: string): Promise<Payment> {
     const payment = await this.GetPaymentById(paymentId);
 
     if (payment.status !== 'captured') {

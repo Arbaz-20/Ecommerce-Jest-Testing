@@ -23,7 +23,7 @@ const SORT_COLUMN_MAP: Record<NonNullable<PaymentListQuery['sortBy']>, string> =
 };
 
 export class PaymentRepository implements IPaymentRepository {
-  private mapRow(row: PaymentRow): Payment {
+  private MapRow(row: PaymentRow): Payment {
     return {
       id: row.id,
       orderId: row.order_id,
@@ -39,12 +39,12 @@ export class PaymentRepository implements IPaymentRepository {
     };
   }
 
-  async FindById(id: string): Promise<Payment | null> {
+  public async FindById(id: string): Promise<Payment | null> {
     const row = await getOne<PaymentRow>('SELECT * FROM payments WHERE id = $1', [id]);
-    return row ? this.mapRow(row) : null;
+    return row ? this.MapRow(row) : null;
   }
 
-  async FindAll(options: PaymentListQuery): Promise<{ items: Payment[]; total: number }> {
+  public async FindAll(options: PaymentListQuery): Promise<{ items: Payment[]; total: number }> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
@@ -83,28 +83,28 @@ export class PaymentRepository implements IPaymentRepository {
     ]);
 
     return {
-      items: dataResult.rows.map((r) => this.mapRow(r)),
+      items: dataResult.rows.map((r) => this.MapRow(r)),
       total: parseInt(countResult.rows[0].count, 10),
     };
   }
 
-  async FindByOrderId(orderId: string): Promise<Payment | null> {
+  public async FindByOrderId(orderId: string): Promise<Payment | null> {
     const row = await getOne<PaymentRow>(
       'SELECT * FROM payments WHERE order_id = $1 ORDER BY created_at DESC LIMIT 1',
       [orderId]
     );
-    return row ? this.mapRow(row) : null;
+    return row ? this.MapRow(row) : null;
   }
 
-  async FindByUserId(userId: string): Promise<Payment[]> {
+  public async FindByUserId(userId: string): Promise<Payment[]> {
     const rows = await getMany<PaymentRow>(
       'SELECT * FROM payments WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
     );
-    return rows.map((r) => this.mapRow(r));
+    return rows.map((r) => this.MapRow(r));
   }
 
-  async Create(
+  public async Create(
     orderId: string,
     userId: string,
     amount: number,
@@ -117,10 +117,10 @@ export class PaymentRepository implements IPaymentRepository {
        RETURNING *`,
       [orderId, userId, amount, currency, method]
     );
-    return this.mapRow(result.rows[0]);
+    return this.MapRow(result.rows[0]);
   }
 
-  async UpdateStatus(
+  public async UpdateStatus(
     id: string,
     status: PaymentStatus,
     transactionId?: string,
@@ -133,6 +133,6 @@ export class PaymentRepository implements IPaymentRepository {
        RETURNING *`,
       [status, transactionId ?? null, failureReason ?? null, id]
     );
-    return result.rows[0] ? this.mapRow(result.rows[0]) : null;
+    return result.rows[0] ? this.MapRow(result.rows[0]) : null;
   }
 }

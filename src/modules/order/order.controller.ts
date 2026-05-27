@@ -12,7 +12,7 @@ export class OrderController {
     this.service = service;
   }
 
-  GetAllOrders = async (
+  public GetAllOrders = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -35,7 +35,7 @@ export class OrderController {
     }
   };
 
-  GetOrderById = async (
+  public GetOrderById = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -52,7 +52,7 @@ export class OrderController {
     }
   };
 
-  CreateOrder = async (
+  public CreateOrder = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -68,7 +68,7 @@ export class OrderController {
     }
   };
 
-  UpdateOrderStatus = async (
+  public UpdateOrderStatus = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -81,7 +81,7 @@ export class OrderController {
     }
   };
 
-  CancelOrder = async (
+  public CancelOrder = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction

@@ -31,13 +31,13 @@ export class OrderService implements IOrderService {
     this.productRepo = productRepo;
   }
 
-  async GetOrderById(id: string): Promise<Order> {
+  public async GetOrderById(id: string): Promise<Order> {
     const order = await this.orderRepo.FindById(id);
     if (!order) throw new NotFoundError('Order');
     return order;
   }
 
-  async GetAllOrders(options: OrderListQuery): Promise<PaginatedResponse<Order>> {
+  public async GetAllOrders(options: OrderListQuery): Promise<PaginatedResponse<Order>> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const { items, total } = await this.orderRepo.FindAll({ ...options, page, pageSize });
@@ -50,7 +50,7 @@ export class OrderService implements IOrderService {
     };
   }
 
-  async CreateOrder(dto: CreateOrderDTO): Promise<Order> {
+  public async CreateOrder(dto: CreateOrderDTO): Promise<Order> {
     if (!dto.items || dto.items.length === 0) {
       throw new ValidationError('Order must have at least one item');
     }
@@ -103,7 +103,7 @@ export class OrderService implements IOrderService {
     );
   }
 
-  async UpdateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+  public async UpdateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
     const order = await this.GetOrderById(orderId);
 
     const validTransitions: Record<string, OrderStatus[]> = {
@@ -135,7 +135,7 @@ export class OrderService implements IOrderService {
     return updated;
   }
 
-  async CancelOrder(orderId: string): Promise<Order> {
+  public async CancelOrder(orderId: string): Promise<Order> {
     return this.UpdateOrderStatus(orderId, 'cancelled');
   }
 

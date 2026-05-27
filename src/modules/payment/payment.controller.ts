@@ -12,7 +12,7 @@ export class PaymentController {
     this.service = service;
   }
 
-  GetAllPayments = async (
+  public GetAllPayments = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -35,7 +35,7 @@ export class PaymentController {
     }
   };
 
-  ProcessPayment = async (
+  public ProcessPayment = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -51,7 +51,7 @@ export class PaymentController {
     }
   };
 
-  GetPaymentById = async (
+  public GetPaymentById = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -68,7 +68,7 @@ export class PaymentController {
     }
   };
 
-  GetPaymentByOrderId = async (
+  public GetPaymentByOrderId = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -81,7 +81,7 @@ export class PaymentController {
     }
   };
 
-  RefundPayment = async (
+  public RefundPayment = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction

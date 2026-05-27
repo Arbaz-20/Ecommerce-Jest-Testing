@@ -10,11 +10,11 @@ const SORT_COLUMN_MAP: Record<NonNullable<ProductListQuery['sortBy']>, string> =
 };
 
 export class ProductRepository implements IProductRepository {
-  async FindById(id: string): Promise<Product | null> {
+  public async FindById(id: string): Promise<Product | null> {
     return getOne<Product>('SELECT * FROM products WHERE id = $1', [id]);
   }
 
-  async FindAll(options: ProductListQuery): Promise<{ items: Product[]; total: number }> {
+  public async FindAll(options: ProductListQuery): Promise<{ items: Product[]; total: number }> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
@@ -52,7 +52,7 @@ export class ProductRepository implements IProductRepository {
     };
   }
 
-  async Search(keyword: string): Promise<Product[]> {
+  public async Search(keyword: string): Promise<Product[]> {
     return getMany<Product>(
       `SELECT * FROM products
        WHERE name ILIKE $1 OR description ILIKE $1
@@ -61,7 +61,7 @@ export class ProductRepository implements IProductRepository {
     );
   }
 
-  async Create(dto: CreateProductDTO): Promise<Product> {
+  public async Create(dto: CreateProductDTO): Promise<Product> {
     const result = await query<Product>(
       `INSERT INTO products (name, description, price, stock, category)
        VALUES ($1, $2, $3, $4, $5)
@@ -71,7 +71,7 @@ export class ProductRepository implements IProductRepository {
     return result.rows[0];
   }
 
-  async Update(id: string, dto: UpdateProductDTO): Promise<Product | null> {
+  public async Update(id: string, dto: UpdateProductDTO): Promise<Product | null> {
     const fields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -109,7 +109,7 @@ export class ProductRepository implements IProductRepository {
     return result.rows[0] ?? null;
   }
 
-  async UpdateStock(id: string, quantityChange: number): Promise<Product | null> {
+  public async UpdateStock(id: string, quantityChange: number): Promise<Product | null> {
     const result = await query<Product>(
       `UPDATE products
        SET stock = stock + $1, updated_at = NOW()
@@ -120,7 +120,7 @@ export class ProductRepository implements IProductRepository {
     return result.rows[0] ?? null;
   }
 
-  async Delete(id: string): Promise<boolean> {
+  public async Delete(id: string): Promise<boolean> {
     const result = await query('DELETE FROM products WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }

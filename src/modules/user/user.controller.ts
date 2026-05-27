@@ -11,7 +11,7 @@ export class UserController {
     this.service = service;
   }
 
-  RegisterUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public RegisterUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.service.RegisterUser(req.body);
       res.status(201).json({ success: true, data: result });
@@ -20,7 +20,7 @@ export class UserController {
     }
   };
 
-  LoginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public LoginUser = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const result = await this.service.LoginUser(req.body);
       res.json({ success: true, data: result });
@@ -29,7 +29,7 @@ export class UserController {
     }
   };
 
-  GetUserProfile = async (
+  public GetUserProfile = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -42,7 +42,7 @@ export class UserController {
     }
   };
 
-  GetAllUsers = async (
+  public GetAllUsers = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -69,7 +69,7 @@ export class UserController {
     }
   };
 
-  UpdateUserProfile = async (
+  public UpdateUserProfile = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
@@ -82,7 +82,7 @@ export class UserController {
     }
   };
 
-  DeactivateUser = async (
+  public DeactivateUser = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction

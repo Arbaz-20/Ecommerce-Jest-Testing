@@ -17,13 +17,13 @@ export class ProductService implements IProductService {
     this.repo = repo;
   }
 
-  async GetProductById(id: string): Promise<Product> {
+  public async GetProductById(id: string): Promise<Product> {
     const product = await this.repo.FindById(id);
     if (!product) throw new NotFoundError('Product');
     return product;
   }
 
-  async GetAllProducts(options: ProductListQuery): Promise<PaginatedResponse<Product>> {
+  public async GetAllProducts(options: ProductListQuery): Promise<PaginatedResponse<Product>> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const { items, total } = await this.repo.FindAll({ ...options, page, pageSize });
@@ -36,19 +36,19 @@ export class ProductService implements IProductService {
     };
   }
 
-  async SearchAllProducts(keyword: string): Promise<Product[]> {
+  public async SearchAllProducts(keyword: string): Promise<Product[]> {
     if (!keyword || keyword.trim().length < 2) {
       throw new ValidationError('Search keyword must be at least 2 characters');
     }
     return this.repo.Search(keyword.trim());
   }
 
-  async CreateProduct(dto: CreateProductDTO): Promise<Product> {
+  public async CreateProduct(dto: CreateProductDTO): Promise<Product> {
     this.ValidateProductData(dto);
     return this.repo.Create(dto);
   }
 
-  async UpdateProduct(id: string, dto: UpdateProductDTO): Promise<Product> {
+  public async UpdateProduct(id: string, dto: UpdateProductDTO): Promise<Product> {
     const existing = await this.repo.FindById(id);
     if (!existing) throw new NotFoundError('Product');
 
@@ -64,7 +64,7 @@ export class ProductService implements IProductService {
     return updated;
   }
 
-  async ReserveStock(productId: string, quantity: number): Promise<Product> {
+  public async ReserveStock(productId: string, quantity: number): Promise<Product> {
     if (quantity <= 0) {
       throw new ValidationError('Quantity must be positive');
     }
@@ -75,13 +75,13 @@ export class ProductService implements IProductService {
     return updated;
   }
 
-  async ReleaseStock(productId: string, quantity: number): Promise<Product> {
+  public async ReleaseStock(productId: string, quantity: number): Promise<Product> {
     const updated = await this.repo.UpdateStock(productId, quantity);
     if (!updated) throw new NotFoundError('Product');
     return updated;
   }
 
-  async DeleteProduct(id: string): Promise<void> {
+  public async DeleteProduct(id: string): Promise<void> {
     const deleted = await this.repo.Delete(id);
     if (!deleted) throw new NotFoundError('Product');
   }

@@ -26,7 +26,7 @@ export class UserService implements IUserService {
     this.repo = repo;
   }
 
-  async RegisterUser(dto: RegisterUserDTO): Promise<AuthResponse> {
+  public async RegisterUser(dto: RegisterUserDTO): Promise<AuthResponse> {
     if (!dto.email || !isValidEmail(dto.email)) {
       throw new ValidationError('Valid email is required');
     }
@@ -62,7 +62,7 @@ export class UserService implements IUserService {
     return { token, user: sanitizeUser(user) };
   }
 
-  async LoginUser(dto: LoginDTO): Promise<AuthResponse> {
+  public async LoginUser(dto: LoginDTO): Promise<AuthResponse> {
     if (!dto.email || !dto.password) {
       throw new ValidationError('Email and password are required');
     }
@@ -90,13 +90,13 @@ export class UserService implements IUserService {
     return { token, user: sanitizeUser(user) };
   }
 
-  async GetUserProfile(userId: string): Promise<Omit<User, 'passwordHash'>> {
+  public async GetUserProfile(userId: string): Promise<Omit<User, 'passwordHash'>> {
     const user = await this.repo.FindById(userId);
     if (!user) throw new NotFoundError('User');
     return sanitizeUser(user);
   }
 
-  async GetAllUsers(
+  public async GetAllUsers(
     options: UserListQuery
   ): Promise<PaginatedResponse<Omit<User, 'passwordHash'>>> {
     const page = options.page && options.page > 0 ? options.page : 1;
@@ -111,7 +111,7 @@ export class UserService implements IUserService {
     };
   }
 
-  async UpdateUserProfile(
+  public async UpdateUserProfile(
     userId: string,
     data: { firstName?: string; lastName?: string }
   ): Promise<Omit<User, 'passwordHash'>> {
@@ -120,7 +120,7 @@ export class UserService implements IUserService {
     return sanitizeUser(updated);
   }
 
-  async DeactivateUser(userId: string): Promise<void> {
+  public async DeactivateUser(userId: string): Promise<void> {
     const success = await this.repo.Deactivate(userId);
     if (!success) throw new NotFoundError('User');
   }

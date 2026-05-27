@@ -10,7 +10,7 @@ export class ProductController {
     this.service = service;
   }
 
-  GetAllProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public GetAllProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const options: ProductListQuery = {
         page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
@@ -27,7 +27,7 @@ export class ProductController {
     }
   };
 
-  SearchAllProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public SearchAllProducts = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const keyword = req.query.q as string;
       const products = await this.service.SearchAllProducts(keyword);
@@ -37,7 +37,7 @@ export class ProductController {
     }
   };
 
-  GetProductById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public GetProductById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const product = await this.service.GetProductById(req.params.id);
       res.json({ success: true, data: product });
@@ -46,7 +46,7 @@ export class ProductController {
     }
   };
 
-  CreateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public CreateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const product = await this.service.CreateProduct(req.body);
       res.status(201).json({ success: true, data: product });
@@ -55,7 +55,7 @@ export class ProductController {
     }
   };
 
-  UpdateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public UpdateProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const product = await this.service.UpdateProduct(req.params.id, req.body);
       res.json({ success: true, data: product });
@@ -64,7 +64,7 @@ export class ProductController {
     }
   };
 
-  DeleteProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  public DeleteProduct = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       await this.service.DeleteProduct(req.params.id);
       res.json({ success: true, message: 'Product deleted' });

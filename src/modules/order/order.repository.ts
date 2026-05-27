@@ -28,7 +28,7 @@ const SORT_COLUMN_MAP: Record<NonNullable<OrderListQuery['sortBy']>, string> = {
 };
 
 export class OrderRepository implements IOrderRepository {
-  private mapRow(row: OrderRow, items: OrderItem[]): Order {
+  private MapRow(row: OrderRow, items: OrderItem[]): Order {
     return {
       id: row.id,
       userId: row.user_id,
@@ -61,14 +61,14 @@ export class OrderRepository implements IOrderRepository {
     );
   }
 
-  async FindById(id: string): Promise<Order | null> {
+  public async FindById(id: string): Promise<Order | null> {
     const row = await getOne<OrderRow>('SELECT * FROM orders WHERE id = $1', [id]);
     if (!row) return null;
     const items = await this.LoadItems(id);
-    return this.mapRow(row, items);
+    return this.MapRow(row, items);
   }
 
-  async FindAll(options: OrderListQuery): Promise<{ items: Order[]; total: number }> {
+  public async FindAll(options: OrderListQuery): Promise<{ items: Order[]; total: number }> {
     const page = options.page && options.page > 0 ? options.page : 1;
     const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
     const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
@@ -107,7 +107,7 @@ export class OrderRepository implements IOrderRepository {
     const orders: Order[] = [];
     for (const row of dataResult.rows) {
       const items = await this.LoadItems(row.id);
-      orders.push(this.mapRow(row, items));
+      orders.push(this.MapRow(row, items));
     }
 
     return {
@@ -116,7 +116,7 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-  async FindByUserId(userId: string): Promise<Order[]> {
+  public async FindByUserId(userId: string): Promise<Order[]> {
     const rows = await getMany<OrderRow>(
       'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
@@ -125,12 +125,12 @@ export class OrderRepository implements IOrderRepository {
     const orders: Order[] = [];
     for (const row of rows) {
       const items = await this.LoadItems(row.id);
-      orders.push(this.mapRow(row, items));
+      orders.push(this.MapRow(row, items));
     }
     return orders;
   }
 
-  async Create(
+  public async Create(
     userId: string,
     items: OrderItem[],
     subtotal: number,
@@ -165,10 +165,10 @@ export class OrderRepository implements IOrderRepository {
       );
     }
 
-    return this.mapRow(orderRow, items);
+    return this.MapRow(orderRow, items);
   }
 
-  async UpdateStatus(id: string, status: OrderStatus): Promise<Order | null> {
+  public async UpdateStatus(id: string, status: OrderStatus): Promise<Order | null> {
     await query(
       `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`,
       [status, id]
@@ -176,7 +176,7 @@ export class OrderRepository implements IOrderRepository {
     return this.FindById(id);
   }
 
-  async SetPaymentId(orderId: string, paymentId: string): Promise<void> {
+  public async SetPaymentId(orderId: string, paymentId: string): Promise<void> {
     await query(
       `UPDATE orders SET payment_id = $1, updated_at = NOW() WHERE id = $2`,
       [paymentId, orderId]
