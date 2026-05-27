@@ -1,11 +1,11 @@
 import { PaymentRepository } from './payment.repository';
 import { PaymentGateway } from './payment.gateway';
-import { IPaymentRepository } from './interfaces/IPaymentRepository';
+import { IPaymentRepository, PaymentListQuery } from './interfaces/IPaymentRepository';
 import { IPaymentService } from './interfaces/IPaymentService';
 import { IPaymentGateway } from './interfaces/IPaymentGateway';
 import { OrderRepository } from '../order/order.repository';
 import { IOrderRepository } from '../order/interfaces/IOrderRepository';
-import { Payment, ProcessPaymentDTO } from '../../shared/types';
+import { Payment, ProcessPaymentDTO, PaginatedResponse } from '../../shared/types';
 import {
   NotFoundError,
   ValidationError,
@@ -27,24 +27,33 @@ export class PaymentService implements IPaymentService {
     this.gateway = gateway;
   }
 
-  async getPayment(id: string): Promise<Payment> {
-    const payment = await this.paymentRepo.findById(id);
+  async GetPaymentById(id: string): Promise<Payment> {
+    const payment = await this.paymentRepo.FindById(id);
     if (!payment) throw new NotFoundError('Payment');
     return payment;
   }
 
-  async getPaymentByOrder(orderId: string): Promise<Payment> {
-    const payment = await this.paymentRepo.findByOrderId(orderId);
+  async GetAllPayments(options: PaymentListQuery): Promise<PaginatedResponse<Payment>> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
+    const { items, total } = await this.paymentRepo.FindAll({ ...options, page, pageSize });
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async GetPaymentByOrderId(orderId: string): Promise<Payment> {
+    const payment = await this.paymentRepo.FindByOrderId(orderId);
     if (!payment) throw new NotFoundError('Payment for order');
     return payment;
   }
 
-  async getUserPayments(userId: string): Promise<Payment[]> {
-    return this.paymentRepo.findByUserId(userId);
-  }
-
-  async processPayment(dto: ProcessPaymentDTO): Promise<Payment> {
-    const order = await this.orderRepo.findById(dto.orderId);
+  async ProcessPayment(dto: ProcessPaymentDTO): Promise<Payment> {
+    const order = await this.orderRepo.FindById(dto.orderId);
     if (!order) throw new NotFoundError('Order');
 
     if (order.status !== 'pending_payment') {
@@ -59,12 +68,12 @@ export class PaymentService implements IPaymentService {
       );
     }
 
-    const existing = await this.paymentRepo.findByOrderId(dto.orderId);
+    const existing = await this.paymentRepo.FindByOrderId(dto.orderId);
     if (existing && existing.status === 'captured') {
       throw new ValidationError('Order has already been paid');
     }
 
-    const payment = await this.paymentRepo.create(
+    const payment = await this.paymentRepo.Create(
       dto.orderId,
       dto.userId,
       dto.amount,
@@ -72,25 +81,25 @@ export class PaymentService implements IPaymentService {
       dto.currency || 'USD'
     );
 
-    const gatewayResult = await this.gateway.charge(
+    const gatewayResult = await this.gateway.Charge(
       dto.amount,
       dto.method,
       dto.cardToken
     );
 
     if (gatewayResult.success) {
-      const updated = await this.paymentRepo.updateStatus(
+      const updated = await this.paymentRepo.UpdateStatus(
         payment.id,
         'captured',
         gatewayResult.transactionId
       );
 
-      await this.orderRepo.updateStatus(dto.orderId, 'paid');
-      await this.orderRepo.setPaymentId(dto.orderId, payment.id);
+      await this.orderRepo.UpdateStatus(dto.orderId, 'paid');
+      await this.orderRepo.SetPaymentId(dto.orderId, payment.id);
 
       return updated!;
     } else {
-      await this.paymentRepo.updateStatus(
+      await this.paymentRepo.UpdateStatus(
         payment.id,
         'failed',
         undefined,
@@ -103,26 +112,26 @@ export class PaymentService implements IPaymentService {
     }
   }
 
-  async refundPayment(paymentId: string): Promise<Payment> {
-    const payment = await this.getPayment(paymentId);
+  async RefundPayment(paymentId: string): Promise<Payment> {
+    const payment = await this.GetPaymentById(paymentId);
 
     if (payment.status !== 'captured') {
       throw new ValidationError('Only captured payments can be refunded');
     }
 
-    const result = await this.gateway.refund(payment.transactionId!, payment.amount);
+    const result = await this.gateway.Refund(payment.transactionId!, payment.amount);
 
     if (!result.success) {
       throw new PaymentFailedError('Refund failed');
     }
 
-    const updated = await this.paymentRepo.updateStatus(
+    const updated = await this.paymentRepo.UpdateStatus(
       paymentId,
       'refunded',
       result.transactionId
     );
 
-    await this.orderRepo.updateStatus(payment.orderId, 'refunded');
+    await this.orderRepo.UpdateStatus(payment.orderId, 'refunded');
 
     return updated!;
   }

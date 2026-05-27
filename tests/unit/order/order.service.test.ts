@@ -36,18 +36,18 @@ describe('OrderService — Unit Tests', () => {
         updatedAt: new Date(),
       };
 
-      mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+      mockOrderRepo.FindById.mockResolvedValueOnce(mockOrder);
 
-      const result = await service.getOrder('order-001');
+      const result = await service.GetOrderById('order-001');
 
       expect(result).toEqual(mockOrder);
-      expect(mockOrderRepo.findById).toHaveBeenCalledWith('order-001');
+      expect(mockOrderRepo.FindById).toHaveBeenCalledWith('order-001');
     });
 
     it('should throw NotFoundError when order does not exist', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce(null);
+      mockOrderRepo.FindById.mockResolvedValueOnce(null);
 
-      await expect(service.getOrder('nope')).rejects.toThrow('Order not found');
+      await expect(service.GetOrderById('nope')).rejects.toThrow('Order not found');
     });
   });
 
@@ -64,7 +64,7 @@ describe('OrderService — Unit Tests', () => {
 
     it('should create order with correct totals', async () => {
       // Mock product lookups
-      mockProductRepo.findById
+      mockProductRepo.FindById
         .mockResolvedValueOnce({
           id: 'prod-001',
           name: 'Keyboard',
@@ -87,7 +87,7 @@ describe('OrderService — Unit Tests', () => {
         });
 
       // Mock stock reservation
-      mockProductRepo.updateStock
+      mockProductRepo.UpdateStock
         .mockResolvedValueOnce({ id: 'prod-001', stock: 48 } as any)
         .mockResolvedValueOnce({ id: 'prod-002', stock: 29 } as any);
 
@@ -120,34 +120,34 @@ describe('OrderService — Unit Tests', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
-      mockOrderRepo.create.mockResolvedValueOnce(createdOrder);
+      mockOrderRepo.Create.mockResolvedValueOnce(createdOrder);
 
-      const result = await service.createOrder(createOrderDto);
+      const result = await service.CreateOrder(createOrderDto);
 
       expect(result.id).toBe('order-new');
       expect(result.status).toBe('pending_payment');
-      expect(mockProductRepo.findById).toHaveBeenCalledTimes(2);
-      expect(mockProductRepo.updateStock).toHaveBeenCalledTimes(2);
-      expect(mockProductRepo.updateStock).toHaveBeenCalledWith('prod-001', -2);
-      expect(mockProductRepo.updateStock).toHaveBeenCalledWith('prod-002', -1);
+      expect(mockProductRepo.FindById).toHaveBeenCalledTimes(2);
+      expect(mockProductRepo.UpdateStock).toHaveBeenCalledTimes(2);
+      expect(mockProductRepo.UpdateStock).toHaveBeenCalledWith('prod-001', -2);
+      expect(mockProductRepo.UpdateStock).toHaveBeenCalledWith('prod-002', -1);
     });
 
     it('should throw ValidationError for empty items', async () => {
       await expect(
-        service.createOrder({ ...createOrderDto, items: [] })
+        service.CreateOrder({ ...createOrderDto, items: [] })
       ).rejects.toThrow('at least one item');
     });
 
     it('should throw NotFoundError for non-existent product', async () => {
-      mockProductRepo.findById.mockResolvedValueOnce(null);
+      mockProductRepo.FindById.mockResolvedValueOnce(null);
 
-      await expect(service.createOrder(createOrderDto)).rejects.toThrow(
+      await expect(service.CreateOrder(createOrderDto)).rejects.toThrow(
         'not found'
       );
     });
 
     it('should throw InsufficientStockError when stock is low', async () => {
-      mockProductRepo.findById.mockResolvedValueOnce({
+      mockProductRepo.FindById.mockResolvedValueOnce({
         id: 'prod-001',
         name: 'Keyboard',
         description: '',
@@ -158,7 +158,7 @@ describe('OrderService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.createOrder(createOrderDto)).rejects.toThrow(
+      await expect(service.CreateOrder(createOrderDto)).rejects.toThrow(
         'Insufficient stock'
       );
     });
@@ -182,55 +182,55 @@ describe('OrderService — Unit Tests', () => {
     };
 
     it('should transition pending_payment → paid', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce({
         ...baseOrder,
         status: 'pending_payment',
       });
-      mockOrderRepo.updateStatus.mockResolvedValueOnce({
+      mockOrderRepo.UpdateStatus.mockResolvedValueOnce({
         ...baseOrder,
         status: 'paid',
       });
 
-      const result = await service.updateOrderStatus('order-001', 'paid');
+      const result = await service.UpdateOrderStatus('order-001', 'paid');
 
       expect(result.status).toBe('paid');
     });
 
     it('should reject invalid status transition (paid → pending)', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce({
         ...baseOrder,
         status: 'paid',
       });
 
       await expect(
-        service.updateOrderStatus('order-001', 'pending')
+        service.UpdateOrderStatus('order-001', 'pending')
       ).rejects.toThrow("Cannot transition from 'paid' to 'pending'");
     });
 
     it('should release stock when cancelling', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce({
         ...baseOrder,
         status: 'pending_payment',
       });
-      mockProductRepo.updateStock.mockResolvedValueOnce({ id: 'prod-001' } as any);
-      mockOrderRepo.updateStatus.mockResolvedValueOnce({
+      mockProductRepo.UpdateStock.mockResolvedValueOnce({ id: 'prod-001' } as any);
+      mockOrderRepo.UpdateStatus.mockResolvedValueOnce({
         ...baseOrder,
         status: 'cancelled',
       });
 
-      await service.cancelOrder('order-001');
+      await service.CancelOrder('order-001');
 
-      expect(mockProductRepo.updateStock).toHaveBeenCalledWith('prod-001', 1);
+      expect(mockProductRepo.UpdateStock).toHaveBeenCalledWith('prod-001', 1);
     });
 
     it('should reject transition from delivered (terminal state)', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce({
         ...baseOrder,
         status: 'delivered',
       });
 
       await expect(
-        service.updateOrderStatus('order-001', 'shipped')
+        service.UpdateOrderStatus('order-001', 'shipped')
       ).rejects.toThrow('Cannot transition');
     });
   });

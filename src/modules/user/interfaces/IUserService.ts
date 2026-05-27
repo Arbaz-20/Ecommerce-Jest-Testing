@@ -3,15 +3,18 @@ import {
   RegisterUserDTO,
   LoginDTO,
   AuthResponse,
+  PaginatedResponse,
 } from '../../../shared/types';
+import { UserListQuery } from './IUserRepository';
 
 export interface IUserService {
-  register(dto: RegisterUserDTO): Promise<AuthResponse>;
-  login(dto: LoginDTO): Promise<AuthResponse>;
-  getProfile(userId: string): Promise<Omit<User, 'passwordHash'>>;
-  updateProfile(
+  RegisterUser(dto: RegisterUserDTO): Promise<AuthResponse>;
+  LoginUser(dto: LoginDTO): Promise<AuthResponse>;
+  GetUserProfile(userId: string): Promise<Omit<User, 'passwordHash'>>;
+  GetAllUsers(options: UserListQuery): Promise<PaginatedResponse<Omit<User, 'passwordHash'>>>;
+  UpdateUserProfile(
     userId: string,
     data: { firstName?: string; lastName?: string }
   ): Promise<Omit<User, 'passwordHash'>>;
-  deactivateAccount(userId: string): Promise<void>;
+  DeactivateUser(userId: string): Promise<void>;
 }

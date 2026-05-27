@@ -6,10 +6,10 @@ export interface PaymentGatewayResult {
 }
 
 export interface IPaymentGateway {
-  charge(
+  Charge(
     amount: number,
     method: string,
     cardToken?: string
   ): Promise<PaymentGatewayResult>;
-  refund(transactionId: string, amount: number): Promise<PaymentGatewayResult>;
+  Refund(transactionId: string, amount: number): Promise<PaymentGatewayResult>;
 }

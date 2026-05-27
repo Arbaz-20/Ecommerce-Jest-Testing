@@ -14,10 +14,11 @@ export class PaymentRoutes {
 
   private registerRoutes(): void {
     this.router.use(authMiddleware);
-    this.router.post('/', this.controller.process);
-    this.router.get('/order/:orderId', this.controller.getByOrder);
-    this.router.get('/:id', this.controller.getById);
-    this.router.post('/:id/refund', this.controller.refund);
+    this.router.get('/', this.controller.GetAllPayments);
+    this.router.post('/', this.controller.ProcessPayment);
+    this.router.get('/order/:orderId', this.controller.GetPaymentByOrderId);
+    this.router.get('/:id', this.controller.GetPaymentById);
+    this.router.post('/:id/refund', this.controller.RefundPayment);
   }
 }
 

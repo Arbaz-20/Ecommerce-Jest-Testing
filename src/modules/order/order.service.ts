@@ -1,9 +1,16 @@
 import { OrderRepository } from './order.repository';
-import { IOrderRepository } from './interfaces/IOrderRepository';
+import { IOrderRepository, OrderListQuery } from './interfaces/IOrderRepository';
 import { IOrderService } from './interfaces/IOrderService';
 import { ProductRepository } from '../product/product.repository';
 import { IProductRepository } from '../product/interfaces/IProductRepository';
-import { Order, CreateOrderDTO, OrderItem, OrderStatus, Coupon } from '../../shared/types';
+import {
+  Order,
+  CreateOrderDTO,
+  OrderItem,
+  OrderStatus,
+  Coupon,
+  PaginatedResponse,
+} from '../../shared/types';
 import {
   NotFoundError,
   ValidationError,
@@ -24,17 +31,26 @@ export class OrderService implements IOrderService {
     this.productRepo = productRepo;
   }
 
-  async getOrder(id: string): Promise<Order> {
-    const order = await this.orderRepo.findById(id);
+  async GetOrderById(id: string): Promise<Order> {
+    const order = await this.orderRepo.FindById(id);
     if (!order) throw new NotFoundError('Order');
     return order;
   }
 
-  async getUserOrders(userId: string): Promise<Order[]> {
-    return this.orderRepo.findByUserId(userId);
+  async GetAllOrders(options: OrderListQuery): Promise<PaginatedResponse<Order>> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
+    const { items, total } = await this.orderRepo.FindAll({ ...options, page, pageSize });
+    return {
+      items,
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
   }
 
-  async createOrder(dto: CreateOrderDTO): Promise<Order> {
+  async CreateOrder(dto: CreateOrderDTO): Promise<Order> {
     if (!dto.items || dto.items.length === 0) {
       throw new ValidationError('Order must have at least one item');
     }
@@ -43,7 +59,7 @@ export class OrderService implements IOrderService {
     let subtotal = 0;
 
     for (const item of dto.items) {
-      const product = await this.productRepo.findById(item.productId);
+      const product = await this.productRepo.FindById(item.productId);
       if (!product) {
         throw new NotFoundError(`Product ${item.productId}`);
       }
@@ -63,19 +79,19 @@ export class OrderService implements IOrderService {
     }
 
     for (const item of dto.items) {
-      const updated = await this.productRepo.updateStock(item.productId, -item.quantity);
+      const updated = await this.productRepo.UpdateStock(item.productId, -item.quantity);
       if (!updated) throw new InsufficientStockError(item.productId);
     }
 
     let discount = 0;
     if (dto.couponCode) {
-      discount = await this.applyCoupon(dto.couponCode, subtotal);
+      discount = await this.ApplyCoupon(dto.couponCode, subtotal);
     }
 
     const tax = calculateTax(subtotal - discount);
     const total = calculateOrderTotal(subtotal, tax, discount);
 
-    return this.orderRepo.create(
+    return this.orderRepo.Create(
       dto.userId,
       orderItems,
       subtotal,
@@ -87,8 +103,8 @@ export class OrderService implements IOrderService {
     );
   }
 
-  async updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
-    const order = await this.getOrder(orderId);
+  async UpdateOrderStatus(orderId: string, status: OrderStatus): Promise<Order> {
+    const order = await this.GetOrderById(orderId);
 
     const validTransitions: Record<string, OrderStatus[]> = {
       pending: ['pending_payment', 'cancelled'],
@@ -110,20 +126,20 @@ export class OrderService implements IOrderService {
 
     if (status === 'cancelled') {
       for (const item of order.items) {
-        await this.productRepo.updateStock(item.productId, item.quantity);
+        await this.productRepo.UpdateStock(item.productId, item.quantity);
       }
     }
 
-    const updated = await this.orderRepo.updateStatus(orderId, status);
+    const updated = await this.orderRepo.UpdateStatus(orderId, status);
     if (!updated) throw new NotFoundError('Order');
     return updated;
   }
 
-  async cancelOrder(orderId: string): Promise<Order> {
-    return this.updateOrderStatus(orderId, 'cancelled');
+  async CancelOrder(orderId: string): Promise<Order> {
+    return this.UpdateOrderStatus(orderId, 'cancelled');
   }
 
-  private async applyCoupon(code: string, subtotal: number): Promise<number> {
+  private async ApplyCoupon(code: string, subtotal: number): Promise<number> {
     const coupon = await getOne<Coupon>(
       'SELECT * FROM coupons WHERE code = $1 AND is_active = true',
       [code]

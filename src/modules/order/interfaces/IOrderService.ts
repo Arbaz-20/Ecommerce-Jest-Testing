@@ -1,9 +1,10 @@
-import { Order, CreateOrderDTO, OrderStatus } from '../../../shared/types';
+import { Order, CreateOrderDTO, OrderStatus, PaginatedResponse } from '../../../shared/types';
+import { OrderListQuery } from './IOrderRepository';
 
 export interface IOrderService {
-  getOrder(id: string): Promise<Order>;
-  getUserOrders(userId: string): Promise<Order[]>;
-  createOrder(dto: CreateOrderDTO): Promise<Order>;
-  updateOrderStatus(orderId: string, status: OrderStatus): Promise<Order>;
-  cancelOrder(orderId: string): Promise<Order>;
+  GetOrderById(id: string): Promise<Order>;
+  GetAllOrders(options: OrderListQuery): Promise<PaginatedResponse<Order>>;
+  CreateOrder(dto: CreateOrderDTO): Promise<Order>;
+  UpdateOrderStatus(orderId: string, status: OrderStatus): Promise<Order>;
+  CancelOrder(orderId: string): Promise<Order>;
 }

@@ -28,7 +28,7 @@ describe('ProductService — Unit Tests', () => {
       };
       mockGetOne.mockResolvedValueOnce(mockProduct);
 
-      const product = await service.getProduct('prod-001');
+      const product = await service.GetProductById('prod-001');
 
       expect(product).toEqual(mockProduct);
       expect(mockGetOne).toHaveBeenCalledWith(
@@ -40,7 +40,7 @@ describe('ProductService — Unit Tests', () => {
     it('should throw NotFoundError when product does not exist', async () => {
       mockGetOne.mockResolvedValueOnce(null);
 
-      await expect(service.getProduct('nonexistent')).rejects.toThrow(
+      await expect(service.GetProductById('nonexistent')).rejects.toThrow(
         'Product not found'
       );
     });
@@ -59,7 +59,7 @@ describe('ProductService — Unit Tests', () => {
         .mockResolvedValueOnce({ rows: [{ count: '5' }] })
         .mockResolvedValueOnce({ rows: mockProducts });
 
-      const result = await service.listProducts(1, 20);
+      const result = await service.GetAllProducts({ page: 1, pageSize: 20 });
 
       expect(result.total).toBe(5);
       expect(result.items).toHaveLength(5);
@@ -72,7 +72,7 @@ describe('ProductService — Unit Tests', () => {
         .mockResolvedValueOnce({ rows: [{ count: '2' }] })
         .mockResolvedValueOnce({ rows: [] });
 
-      await service.listProducts(1, 20, 'electronics');
+      await service.GetAllProducts({ page: 1, pageSize: 20, category: 'electronics' });
 
       // Both queries should include the category filter
       expect(mockQuery.mock.calls[0][1]).toEqual(['electronics']);
@@ -84,7 +84,7 @@ describe('ProductService — Unit Tests', () => {
     it('should search products by keyword', async () => {
       mockGetMany.mockResolvedValueOnce([{ id: 'prod-001', name: 'Keyboard' }]);
 
-      const results = await service.searchProducts('keyboard');
+      const results = await service.SearchAllProducts('keyboard');
 
       expect(results).toHaveLength(1);
       expect(mockGetMany).toHaveBeenCalledWith(
@@ -94,13 +94,13 @@ describe('ProductService — Unit Tests', () => {
     });
 
     it('should throw ValidationError for short keyword', async () => {
-      await expect(service.searchProducts('a')).rejects.toThrow(
+      await expect(service.SearchAllProducts('a')).rejects.toThrow(
         'at least 2 characters'
       );
     });
 
     it('should throw ValidationError for empty keyword', async () => {
-      await expect(service.searchProducts('')).rejects.toThrow(
+      await expect(service.SearchAllProducts('')).rejects.toThrow(
         'at least 2 characters'
       );
     });
@@ -113,7 +113,7 @@ describe('ProductService — Unit Tests', () => {
       const expected = { id: 'new-prod', ...dto };
       mockQueryReturning(expected);
 
-      const product = await service.createProduct(dto);
+      const product = await service.CreateProduct(dto);
 
       expect(product).toEqual(expected);
       expect(mockQuery).toHaveBeenCalledWith(
@@ -124,25 +124,25 @@ describe('ProductService — Unit Tests', () => {
 
     it('should reject product with empty name', async () => {
       await expect(
-        service.createProduct(invalidProducts.missingName as any)
+        service.CreateProduct(invalidProducts.missingName as any)
       ).rejects.toThrow('Product name is required');
     });
 
     it('should reject product with negative price', async () => {
       await expect(
-        service.createProduct(invalidProducts.negativePrice as any)
+        service.CreateProduct(invalidProducts.negativePrice as any)
       ).rejects.toThrow('Price must be a non-negative number');
     });
 
     it('should reject product with negative stock', async () => {
       await expect(
-        service.createProduct(invalidProducts.negativeStock as any)
+        service.CreateProduct(invalidProducts.negativeStock as any)
       ).rejects.toThrow('Stock cannot be negative');
     });
 
     it('should reject product with empty category', async () => {
       await expect(
-        service.createProduct(invalidProducts.missingCategory as any)
+        service.CreateProduct(invalidProducts.missingCategory as any)
       ).rejects.toThrow('Category is required');
     });
   });
@@ -156,7 +156,7 @@ describe('ProductService — Unit Tests', () => {
       const updated = { ...existing, price: 199.99 };
       mockQueryReturning(updated);
 
-      const result = await service.updateProduct('prod-001', { price: 199.99 });
+      const result = await service.UpdateProduct('prod-001', { price: 199.99 });
 
       expect(result.price).toBe(199.99);
     });
@@ -165,7 +165,7 @@ describe('ProductService — Unit Tests', () => {
       mockGetOne.mockResolvedValueOnce(null);
 
       await expect(
-        service.updateProduct('nope', { price: 10 })
+        service.UpdateProduct('nope', { price: 10 })
       ).rejects.toThrow('Product not found');
     });
 
@@ -174,7 +174,7 @@ describe('ProductService — Unit Tests', () => {
       mockGetOne.mockResolvedValueOnce(existing);
 
       await expect(
-        service.updateProduct('prod-001', { price: -5 })
+        service.UpdateProduct('prod-001', { price: -5 })
       ).rejects.toThrow('Price must be a non-negative number');
     });
   });
@@ -185,7 +185,7 @@ describe('ProductService — Unit Tests', () => {
       const updatedProduct = { id: 'prod-001', stock: 45 };
       mockQueryReturning(updatedProduct);
 
-      const result = await service.reserveStock('prod-001', 5);
+      const result = await service.ReserveStock('prod-001', 5);
 
       expect(result.stock).toBe(45);
     });
@@ -194,15 +194,15 @@ describe('ProductService — Unit Tests', () => {
       mockQuery.mockResolvedValueOnce({ rows: [], rowCount: 0 });
 
       await expect(
-        service.reserveStock('prod-001', 999)
+        service.ReserveStock('prod-001', 999)
       ).rejects.toThrow('Insufficient stock');
     });
 
     it('should throw for non-positive quantity', async () => {
-      await expect(service.reserveStock('prod-001', 0)).rejects.toThrow(
+      await expect(service.ReserveStock('prod-001', 0)).rejects.toThrow(
         'Quantity must be positive'
       );
-      await expect(service.reserveStock('prod-001', -1)).rejects.toThrow(
+      await expect(service.ReserveStock('prod-001', -1)).rejects.toThrow(
         'Quantity must be positive'
       );
     });
@@ -213,13 +213,13 @@ describe('ProductService — Unit Tests', () => {
     it('should delete an existing product', async () => {
       mockQuery.mockResolvedValueOnce({ rowCount: 1 });
 
-      await expect(service.deleteProduct('prod-001')).resolves.toBeUndefined();
+      await expect(service.DeleteProduct('prod-001')).resolves.toBeUndefined();
     });
 
     it('should throw NotFoundError if product does not exist', async () => {
       mockQuery.mockResolvedValueOnce({ rowCount: 0 });
 
-      await expect(service.deleteProduct('nope')).rejects.toThrow(
+      await expect(service.DeleteProduct('nope')).rejects.toThrow(
         'Product not found'
       );
     });

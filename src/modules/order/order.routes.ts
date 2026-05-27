@@ -14,11 +14,11 @@ export class OrderRoutes {
 
   private registerRoutes(): void {
     this.router.use(authMiddleware);
-    this.router.get('/', this.controller.list);
-    this.router.get('/:id', this.controller.getById);
-    this.router.post('/', this.controller.create);
-    this.router.patch('/:id/status', this.controller.updateStatus);
-    this.router.post('/:id/cancel', this.controller.cancel);
+    this.router.get('/', this.controller.GetAllOrders);
+    this.router.get('/:id', this.controller.GetOrderById);
+    this.router.post('/', this.controller.CreateOrder);
+    this.router.patch('/:id/status', this.controller.UpdateOrderStatus);
+    this.router.post('/:id/cancel', this.controller.CancelOrder);
   }
 }
 

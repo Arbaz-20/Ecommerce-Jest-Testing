@@ -1,6 +1,6 @@
 import { query, getOne, getMany } from '../../shared/database';
 import { Order, OrderItem, OrderStatus } from '../../shared/types';
-import { IOrderRepository } from './interfaces/IOrderRepository';
+import { IOrderRepository, OrderListQuery } from './interfaces/IOrderRepository';
 
 export interface OrderRow {
   id: string;
@@ -20,6 +20,12 @@ export interface OrderRow {
   created_at: Date;
   updated_at: Date;
 }
+
+const SORT_COLUMN_MAP: Record<NonNullable<OrderListQuery['sortBy']>, string> = {
+  createdAt: 'created_at',
+  total: 'total',
+  status: 'status',
+};
 
 export class OrderRepository implements IOrderRepository {
   private mapRow(row: OrderRow, items: OrderItem[]): Order {
@@ -46,20 +52,71 @@ export class OrderRepository implements IOrderRepository {
     };
   }
 
-  async findById(id: string): Promise<Order | null> {
-    const row = await getOne<OrderRow>('SELECT * FROM orders WHERE id = $1', [id]);
-    if (!row) return null;
-
-    const items = await getMany<OrderItem>(
+  private async LoadItems(orderId: string): Promise<OrderItem[]> {
+    return getMany<OrderItem>(
       `SELECT product_id as "productId", product_name as "productName",
               quantity, unit_price as "unitPrice", total_price as "totalPrice"
        FROM order_items WHERE order_id = $1`,
-      [id]
+      [orderId]
     );
+  }
+
+  async FindById(id: string): Promise<Order | null> {
+    const row = await getOne<OrderRow>('SELECT * FROM orders WHERE id = $1', [id]);
+    if (!row) return null;
+    const items = await this.LoadItems(id);
     return this.mapRow(row, items);
   }
 
-  async findByUserId(userId: string): Promise<Order[]> {
+  async FindAll(options: OrderListQuery): Promise<{ items: Order[]; total: number }> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
+    const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
+    const sortOrder = options.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (options.userId) {
+      params.push(options.userId);
+      where.push(`user_id = $${params.length}`);
+    }
+    if (options.status) {
+      params.push(options.status);
+      where.push(`status = $${params.length}`);
+    }
+    if (options.search && options.search.trim().length > 0) {
+      params.push(`%${options.search.trim()}%`);
+      where.push(`(id::text ILIKE $${params.length} OR coupon_code ILIKE $${params.length})`);
+    }
+
+    const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
+    const offset = (page - 1) * pageSize;
+
+    const dataQuery =
+      `SELECT * FROM orders${whereClause} ` +
+      `ORDER BY ${sortColumn} ${sortOrder} ` +
+      `LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const countQuery = `SELECT COUNT(*) FROM orders${whereClause}`;
+
+    const [countResult, dataResult] = await Promise.all([
+      query(countQuery, params),
+      query<OrderRow>(dataQuery, [...params, pageSize, offset]),
+    ]);
+
+    const orders: Order[] = [];
+    for (const row of dataResult.rows) {
+      const items = await this.LoadItems(row.id);
+      orders.push(this.mapRow(row, items));
+    }
+
+    return {
+      items: orders,
+      total: parseInt(countResult.rows[0].count, 10),
+    };
+  }
+
+  async FindByUserId(userId: string): Promise<Order[]> {
     const rows = await getMany<OrderRow>(
       'SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
@@ -67,18 +124,13 @@ export class OrderRepository implements IOrderRepository {
 
     const orders: Order[] = [];
     for (const row of rows) {
-      const items = await getMany<OrderItem>(
-        `SELECT product_id as "productId", product_name as "productName",
-                quantity, unit_price as "unitPrice", total_price as "totalPrice"
-         FROM order_items WHERE order_id = $1`,
-        [row.id]
-      );
+      const items = await this.LoadItems(row.id);
       orders.push(this.mapRow(row, items));
     }
     return orders;
   }
 
-  async create(
+  async Create(
     userId: string,
     items: OrderItem[],
     subtotal: number,
@@ -116,15 +168,15 @@ export class OrderRepository implements IOrderRepository {
     return this.mapRow(orderRow, items);
   }
 
-  async updateStatus(id: string, status: OrderStatus): Promise<Order | null> {
+  async UpdateStatus(id: string, status: OrderStatus): Promise<Order | null> {
     await query(
       `UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`,
       [status, id]
     );
-    return this.findById(id);
+    return this.FindById(id);
   }
 
-  async setPaymentId(orderId: string, paymentId: string): Promise<void> {
+  async SetPaymentId(orderId: string, paymentId: string): Promise<void> {
     await query(
       `UPDATE orders SET payment_id = $1, updated_at = NOW() WHERE id = $2`,
       [paymentId, orderId]

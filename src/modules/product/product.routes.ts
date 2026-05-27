@@ -13,12 +13,12 @@ export class ProductRoutes {
   }
 
   private registerRoutes(): void {
-    this.router.get('/', this.controller.list);
-    this.router.get('/search', this.controller.search);
-    this.router.get('/:id', this.controller.getById);
-    this.router.post('/', authMiddleware, adminMiddleware, this.controller.create);
-    this.router.put('/:id', authMiddleware, adminMiddleware, this.controller.update);
-    this.router.delete('/:id', authMiddleware, adminMiddleware, this.controller.delete);
+    this.router.get('/', this.controller.GetAllProducts);
+    this.router.get('/search', this.controller.SearchAllProducts);
+    this.router.get('/:id', this.controller.GetProductById);
+    this.router.post('/', authMiddleware, adminMiddleware, this.controller.CreateProduct);
+    this.router.put('/:id', authMiddleware, adminMiddleware, this.controller.UpdateProduct);
+    this.router.delete('/:id', authMiddleware, adminMiddleware, this.controller.DeleteProduct);
   }
 }
 

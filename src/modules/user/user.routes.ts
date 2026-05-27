@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { UserController } from './user.controller';
-import { authMiddleware } from '../../shared/middleware/auth';
+import { authMiddleware, adminMiddleware } from '../../shared/middleware/auth';
 
 export class UserRoutes {
   public readonly router: Router;
@@ -13,11 +13,12 @@ export class UserRoutes {
   }
 
   private registerRoutes(): void {
-    this.router.post('/register', this.controller.register);
-    this.router.post('/login', this.controller.login);
-    this.router.get('/profile', authMiddleware, this.controller.getProfile);
-    this.router.put('/profile', authMiddleware, this.controller.updateProfile);
-    this.router.post('/deactivate', authMiddleware, this.controller.deactivate);
+    this.router.post('/register', this.controller.RegisterUser);
+    this.router.post('/login', this.controller.LoginUser);
+    this.router.get('/profile', authMiddleware, this.controller.GetUserProfile);
+    this.router.put('/profile', authMiddleware, this.controller.UpdateUserProfile);
+    this.router.post('/deactivate', authMiddleware, this.controller.DeactivateUser);
+    this.router.get('/', authMiddleware, adminMiddleware, this.controller.GetAllUsers);
   }
 }
 

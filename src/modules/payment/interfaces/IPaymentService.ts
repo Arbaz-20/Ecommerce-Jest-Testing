@@ -1,9 +1,10 @@
-import { Payment, ProcessPaymentDTO } from '../../../shared/types';
+import { Payment, ProcessPaymentDTO, PaginatedResponse } from '../../../shared/types';
+import { PaymentListQuery } from './IPaymentRepository';
 
 export interface IPaymentService {
-  getPayment(id: string): Promise<Payment>;
-  getPaymentByOrder(orderId: string): Promise<Payment>;
-  getUserPayments(userId: string): Promise<Payment[]>;
-  processPayment(dto: ProcessPaymentDTO): Promise<Payment>;
-  refundPayment(paymentId: string): Promise<Payment>;
+  GetPaymentById(id: string): Promise<Payment>;
+  GetAllPayments(options: PaymentListQuery): Promise<PaginatedResponse<Payment>>;
+  GetPaymentByOrderId(orderId: string): Promise<Payment>;
+  ProcessPayment(dto: ProcessPaymentDTO): Promise<Payment>;
+  RefundPayment(paymentId: string): Promise<Payment>;
 }

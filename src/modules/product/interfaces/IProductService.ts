@@ -4,18 +4,15 @@ import {
   UpdateProductDTO,
   PaginatedResponse,
 } from '../../../shared/types';
+import { ProductListQuery } from './IProductRepository';
 
 export interface IProductService {
-  getProduct(id: string): Promise<Product>;
-  listProducts(
-    page?: number,
-    pageSize?: number,
-    category?: string
-  ): Promise<PaginatedResponse<Product>>;
-  searchProducts(keyword: string): Promise<Product[]>;
-  createProduct(dto: CreateProductDTO): Promise<Product>;
-  updateProduct(id: string, dto: UpdateProductDTO): Promise<Product>;
-  reserveStock(productId: string, quantity: number): Promise<Product>;
-  releaseStock(productId: string, quantity: number): Promise<Product>;
-  deleteProduct(id: string): Promise<void>;
+  GetProductById(id: string): Promise<Product>;
+  GetAllProducts(options: ProductListQuery): Promise<PaginatedResponse<Product>>;
+  SearchAllProducts(keyword: string): Promise<Product[]>;
+  CreateProduct(dto: CreateProductDTO): Promise<Product>;
+  UpdateProduct(id: string, dto: UpdateProductDTO): Promise<Product>;
+  ReserveStock(productId: string, quantity: number): Promise<Product>;
+  ReleaseStock(productId: string, quantity: number): Promise<Product>;
+  DeleteProduct(id: string): Promise<void>;
 }

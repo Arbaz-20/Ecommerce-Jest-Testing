@@ -1,12 +1,13 @@
 import bcrypt from 'bcryptjs';
 import { UserRepository } from './user.repository';
-import { IUserRepository } from './interfaces/IUserRepository';
+import { IUserRepository, UserListQuery } from './interfaces/IUserRepository';
 import { IUserService } from './interfaces/IUserService';
 import {
   User,
   RegisterUserDTO,
   LoginDTO,
   AuthResponse,
+  PaginatedResponse,
 } from '../../shared/types';
 import { generateToken } from '../../shared/middleware/auth';
 import {
@@ -25,7 +26,7 @@ export class UserService implements IUserService {
     this.repo = repo;
   }
 
-  async register(dto: RegisterUserDTO): Promise<AuthResponse> {
+  async RegisterUser(dto: RegisterUserDTO): Promise<AuthResponse> {
     if (!dto.email || !isValidEmail(dto.email)) {
       throw new ValidationError('Valid email is required');
     }
@@ -39,13 +40,13 @@ export class UserService implements IUserService {
       throw new ValidationError('Last name is required');
     }
 
-    const existing = await this.repo.findByEmail(dto.email);
+    const existing = await this.repo.FindByEmail(dto.email);
     if (existing) {
       throw new ConflictError('Email already registered');
     }
 
     const passwordHash = await bcrypt.hash(dto.password, SALT_ROUNDS);
-    const user = await this.repo.create(
+    const user = await this.repo.Create(
       dto.email,
       passwordHash,
       dto.firstName.trim(),
@@ -61,12 +62,12 @@ export class UserService implements IUserService {
     return { token, user: sanitizeUser(user) };
   }
 
-  async login(dto: LoginDTO): Promise<AuthResponse> {
+  async LoginUser(dto: LoginDTO): Promise<AuthResponse> {
     if (!dto.email || !dto.password) {
       throw new ValidationError('Email and password are required');
     }
 
-    const user = await this.repo.findByEmail(dto.email);
+    const user = await this.repo.FindByEmail(dto.email);
     if (!user) {
       throw new ValidationError('Invalid email or password');
     }
@@ -89,23 +90,38 @@ export class UserService implements IUserService {
     return { token, user: sanitizeUser(user) };
   }
 
-  async getProfile(userId: string): Promise<Omit<User, 'passwordHash'>> {
-    const user = await this.repo.findById(userId);
+  async GetUserProfile(userId: string): Promise<Omit<User, 'passwordHash'>> {
+    const user = await this.repo.FindById(userId);
     if (!user) throw new NotFoundError('User');
     return sanitizeUser(user);
   }
 
-  async updateProfile(
+  async GetAllUsers(
+    options: UserListQuery
+  ): Promise<PaginatedResponse<Omit<User, 'passwordHash'>>> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
+    const { items, total } = await this.repo.FindAll({ ...options, page, pageSize });
+    return {
+      items: items.map((u) => sanitizeUser(u)),
+      total,
+      page,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+    };
+  }
+
+  async UpdateUserProfile(
     userId: string,
     data: { firstName?: string; lastName?: string }
   ): Promise<Omit<User, 'passwordHash'>> {
-    const updated = await this.repo.updateProfile(userId, data);
+    const updated = await this.repo.UpdateProfile(userId, data);
     if (!updated) throw new NotFoundError('User');
     return sanitizeUser(updated);
   }
 
-  async deactivateAccount(userId: string): Promise<void> {
-    const success = await this.repo.deactivate(userId);
+  async DeactivateUser(userId: string): Promise<void> {
+    const success = await this.repo.Deactivate(userId);
     if (!success) throw new NotFoundError('User');
   }
 }

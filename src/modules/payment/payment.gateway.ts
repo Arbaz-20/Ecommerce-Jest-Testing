@@ -2,9 +2,9 @@ import { generateId } from '../../shared/utils';
 import { IPaymentGateway, PaymentGatewayResult } from './interfaces/IPaymentGateway';
 
 export class PaymentGateway implements IPaymentGateway {
-  async charge(
+  async Charge(
     amount: number,
-    method: string,
+    _method: string,
     cardToken?: string
   ): Promise<PaymentGatewayResult> {
     if (cardToken === 'tok_fail') {
@@ -37,7 +37,7 @@ export class PaymentGateway implements IPaymentGateway {
     };
   }
 
-  async refund(_transactionId: string, _amount: number): Promise<PaymentGatewayResult> {
+  async Refund(_transactionId: string, _amount: number): Promise<PaymentGatewayResult> {
     return {
       success: true,
       transactionId: `ref_${generateId().slice(0, 12)}`,

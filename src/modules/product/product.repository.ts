@@ -1,32 +1,48 @@
 import { query, getOne, getMany } from '../../shared/database';
 import { Product, CreateProductDTO, UpdateProductDTO } from '../../shared/types';
-import { IProductRepository } from './interfaces/IProductRepository';
+import { IProductRepository, ProductListQuery } from './interfaces/IProductRepository';
+
+const SORT_COLUMN_MAP: Record<NonNullable<ProductListQuery['sortBy']>, string> = {
+  name: 'name',
+  price: 'price',
+  stock: 'stock',
+  createdAt: 'created_at',
+};
 
 export class ProductRepository implements IProductRepository {
-  async findById(id: string): Promise<Product | null> {
+  async FindById(id: string): Promise<Product | null> {
     return getOne<Product>('SELECT * FROM products WHERE id = $1', [id]);
   }
 
-  async findAll(
-    page: number = 1,
-    pageSize: number = 20,
-    category?: string
-  ): Promise<{ items: Product[]; total: number }> {
-    let countQuery = 'SELECT COUNT(*) FROM products';
-    let dataQuery = 'SELECT * FROM products';
+  async FindAll(options: ProductListQuery): Promise<{ items: Product[]; total: number }> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
+    const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
+    const sortOrder = options.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const where: string[] = [];
     const params: any[] = [];
 
-    if (category) {
-      countQuery += ' WHERE category = $1';
-      dataQuery += ' WHERE category = $1';
-      params.push(category);
+    if (options.category) {
+      params.push(options.category);
+      where.push(`category = $${params.length}`);
+    }
+    if (options.search && options.search.trim().length > 0) {
+      params.push(`%${options.search.trim()}%`);
+      where.push(`(name ILIKE $${params.length} OR description ILIKE $${params.length})`);
     }
 
+    const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
     const offset = (page - 1) * pageSize;
-    dataQuery += ` ORDER BY created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+
+    const dataQuery =
+      `SELECT * FROM products${whereClause} ` +
+      `ORDER BY ${sortColumn} ${sortOrder} ` +
+      `LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const countQuery = `SELECT COUNT(*) FROM products${whereClause}`;
 
     const [countResult, dataResult] = await Promise.all([
-      query(countQuery, category ? [category] : []),
+      query(countQuery, params),
       query<Product>(dataQuery, [...params, pageSize, offset]),
     ]);
 
@@ -36,7 +52,7 @@ export class ProductRepository implements IProductRepository {
     };
   }
 
-  async search(keyword: string): Promise<Product[]> {
+  async Search(keyword: string): Promise<Product[]> {
     return getMany<Product>(
       `SELECT * FROM products
        WHERE name ILIKE $1 OR description ILIKE $1
@@ -45,7 +61,7 @@ export class ProductRepository implements IProductRepository {
     );
   }
 
-  async create(dto: CreateProductDTO): Promise<Product> {
+  async Create(dto: CreateProductDTO): Promise<Product> {
     const result = await query<Product>(
       `INSERT INTO products (name, description, price, stock, category)
        VALUES ($1, $2, $3, $4, $5)
@@ -55,7 +71,7 @@ export class ProductRepository implements IProductRepository {
     return result.rows[0];
   }
 
-  async update(id: string, dto: UpdateProductDTO): Promise<Product | null> {
+  async Update(id: string, dto: UpdateProductDTO): Promise<Product | null> {
     const fields: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
@@ -81,7 +97,7 @@ export class ProductRepository implements IProductRepository {
       values.push(dto.category);
     }
 
-    if (fields.length === 0) return this.findById(id);
+    if (fields.length === 0) return this.FindById(id);
 
     fields.push(`updated_at = NOW()`);
     values.push(id);
@@ -93,7 +109,7 @@ export class ProductRepository implements IProductRepository {
     return result.rows[0] ?? null;
   }
 
-  async updateStock(id: string, quantityChange: number): Promise<Product | null> {
+  async UpdateStock(id: string, quantityChange: number): Promise<Product | null> {
     const result = await query<Product>(
       `UPDATE products
        SET stock = stock + $1, updated_at = NOW()
@@ -104,7 +120,7 @@ export class ProductRepository implements IProductRepository {
     return result.rows[0] ?? null;
   }
 
-  async delete(id: string): Promise<boolean> {
+  async Delete(id: string): Promise<boolean> {
     const result = await query('DELETE FROM products WHERE id = $1', [id]);
     return (result.rowCount ?? 0) > 0;
   }

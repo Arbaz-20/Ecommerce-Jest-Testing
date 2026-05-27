@@ -1,7 +1,9 @@
 import { Response, NextFunction } from 'express';
 import { OrderService } from './order.service';
 import { IOrderService } from './interfaces/IOrderService';
+import { OrderListQuery } from './interfaces/IOrderRepository';
 import { AuthenticatedRequest } from '../../shared/middleware/auth';
+import { OrderStatus } from '../../shared/types';
 
 export class OrderController {
   private service: IOrderService;
@@ -10,18 +12,36 @@ export class OrderController {
     this.service = service;
   }
 
-  list = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  GetAllOrders = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const orders = await this.service.getUserOrders(req.user!.userId);
-      res.json({ success: true, data: orders });
+      const isAdmin = req.user!.role === 'admin';
+      const options: OrderListQuery = {
+        page: req.query.page ? parseInt(req.query.page as string, 10) : undefined,
+        pageSize: req.query.pageSize ? parseInt(req.query.pageSize as string, 10) : undefined,
+        search: (req.query.search as string) || undefined,
+        sortBy: (req.query.sortBy as OrderListQuery['sortBy']) || undefined,
+        sortOrder: (req.query.sortOrder as OrderListQuery['sortOrder']) || undefined,
+        status: (req.query.status as OrderStatus) || undefined,
+        userId: isAdmin ? ((req.query.userId as string) || undefined) : req.user!.userId,
+      };
+      const result = await this.service.GetAllOrders(options);
+      res.json({ success: true, data: result });
     } catch (err) {
       next(err);
     }
   };
 
-  getById = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  GetOrderById = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const order = await this.service.getOrder(req.params.id);
+      const order = await this.service.GetOrderById(req.params.id);
       if (order.userId !== req.user!.userId && req.user!.role !== 'admin') {
         res.status(403).json({ success: false, error: 'Access denied' });
         return;
@@ -32,9 +52,13 @@ export class OrderController {
     }
   };
 
-  create = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  CreateOrder = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const order = await this.service.createOrder({
+      const order = await this.service.CreateOrder({
         ...req.body,
         userId: req.user!.userId,
       });
@@ -44,22 +68,26 @@ export class OrderController {
     }
   };
 
-  updateStatus = async (
+  UpdateOrderStatus = async (
     req: AuthenticatedRequest,
     res: Response,
     next: NextFunction
   ): Promise<void> => {
     try {
-      const order = await this.service.updateOrderStatus(req.params.id, req.body.status);
+      const order = await this.service.UpdateOrderStatus(req.params.id, req.body.status);
       res.json({ success: true, data: order });
     } catch (err) {
       next(err);
     }
   };
 
-  cancel = async (req: AuthenticatedRequest, res: Response, next: NextFunction): Promise<void> => {
+  CancelOrder = async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ): Promise<void> => {
     try {
-      const order = await this.service.cancelOrder(req.params.id);
+      const order = await this.service.CancelOrder(req.params.id);
       res.json({ success: true, data: order });
     } catch (err) {
       next(err);

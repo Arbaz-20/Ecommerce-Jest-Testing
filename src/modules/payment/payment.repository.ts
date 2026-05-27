@@ -1,6 +1,6 @@
 import { query, getOne, getMany } from '../../shared/database';
 import { Payment, PaymentStatus } from '../../shared/types';
-import { IPaymentRepository } from './interfaces/IPaymentRepository';
+import { IPaymentRepository, PaymentListQuery } from './interfaces/IPaymentRepository';
 
 interface PaymentRow {
   id: string;
@@ -15,6 +15,12 @@ interface PaymentRow {
   created_at: Date;
   updated_at: Date;
 }
+
+const SORT_COLUMN_MAP: Record<NonNullable<PaymentListQuery['sortBy']>, string> = {
+  createdAt: 'created_at',
+  amount: 'amount',
+  status: 'status',
+};
 
 export class PaymentRepository implements IPaymentRepository {
   private mapRow(row: PaymentRow): Payment {
@@ -33,12 +39,56 @@ export class PaymentRepository implements IPaymentRepository {
     };
   }
 
-  async findById(id: string): Promise<Payment | null> {
+  async FindById(id: string): Promise<Payment | null> {
     const row = await getOne<PaymentRow>('SELECT * FROM payments WHERE id = $1', [id]);
     return row ? this.mapRow(row) : null;
   }
 
-  async findByOrderId(orderId: string): Promise<Payment | null> {
+  async FindAll(options: PaymentListQuery): Promise<{ items: Payment[]; total: number }> {
+    const page = options.page && options.page > 0 ? options.page : 1;
+    const pageSize = options.pageSize && options.pageSize > 0 ? Math.min(options.pageSize, 100) : 20;
+    const sortColumn = SORT_COLUMN_MAP[options.sortBy ?? 'createdAt'];
+    const sortOrder = options.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
+    const where: string[] = [];
+    const params: any[] = [];
+
+    if (options.userId) {
+      params.push(options.userId);
+      where.push(`user_id = $${params.length}`);
+    }
+    if (options.status) {
+      params.push(options.status);
+      where.push(`status = $${params.length}`);
+    }
+    if (options.search && options.search.trim().length > 0) {
+      params.push(`%${options.search.trim()}%`);
+      where.push(
+        `(id::text ILIKE $${params.length} OR transaction_id ILIKE $${params.length})`
+      );
+    }
+
+    const whereClause = where.length > 0 ? ` WHERE ${where.join(' AND ')}` : '';
+    const offset = (page - 1) * pageSize;
+
+    const dataQuery =
+      `SELECT * FROM payments${whereClause} ` +
+      `ORDER BY ${sortColumn} ${sortOrder} ` +
+      `LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    const countQuery = `SELECT COUNT(*) FROM payments${whereClause}`;
+
+    const [countResult, dataResult] = await Promise.all([
+      query(countQuery, params),
+      query<PaymentRow>(dataQuery, [...params, pageSize, offset]),
+    ]);
+
+    return {
+      items: dataResult.rows.map((r) => this.mapRow(r)),
+      total: parseInt(countResult.rows[0].count, 10),
+    };
+  }
+
+  async FindByOrderId(orderId: string): Promise<Payment | null> {
     const row = await getOne<PaymentRow>(
       'SELECT * FROM payments WHERE order_id = $1 ORDER BY created_at DESC LIMIT 1',
       [orderId]
@@ -46,7 +96,7 @@ export class PaymentRepository implements IPaymentRepository {
     return row ? this.mapRow(row) : null;
   }
 
-  async findByUserId(userId: string): Promise<Payment[]> {
+  async FindByUserId(userId: string): Promise<Payment[]> {
     const rows = await getMany<PaymentRow>(
       'SELECT * FROM payments WHERE user_id = $1 ORDER BY created_at DESC',
       [userId]
@@ -54,7 +104,7 @@ export class PaymentRepository implements IPaymentRepository {
     return rows.map((r) => this.mapRow(r));
   }
 
-  async create(
+  async Create(
     orderId: string,
     userId: string,
     amount: number,
@@ -70,7 +120,7 @@ export class PaymentRepository implements IPaymentRepository {
     return this.mapRow(result.rows[0]);
   }
 
-  async updateStatus(
+  async UpdateStatus(
     id: string,
     status: PaymentStatus,
     transactionId?: string,

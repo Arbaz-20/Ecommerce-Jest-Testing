@@ -30,15 +30,15 @@ describe('UserService — Unit Tests', () => {
   // ── register ──────────────────────────────────────────────────
   describe('register()', () => {
     it('should register a new user and return token', async () => {
-      mockRepo.findByEmail.mockResolvedValueOnce(null);
-      mockRepo.create.mockResolvedValueOnce(mockUser);
+      mockRepo.FindByEmail.mockResolvedValueOnce(null);
+      mockRepo.Create.mockResolvedValueOnce(mockUser);
 
-      const result = await service.register(testUsers.customer);
+      const result = await service.RegisterUser(testUsers.customer);
 
       expect(result.token).toBeDefined();
       expect(result.user).toBeDefined();
       expect(result.user).not.toHaveProperty('passwordHash');
-      expect(mockRepo.create).toHaveBeenCalledWith(
+      expect(mockRepo.Create).toHaveBeenCalledWith(
         testUsers.customer.email.toLowerCase(),
         expect.any(String), // hashed password
         testUsers.customer.firstName,
@@ -47,28 +47,28 @@ describe('UserService — Unit Tests', () => {
     });
 
     it('should throw ConflictError for duplicate email', async () => {
-      mockRepo.findByEmail.mockResolvedValueOnce(mockUser);
+      mockRepo.FindByEmail.mockResolvedValueOnce(mockUser);
 
-      await expect(service.register(testUsers.customer)).rejects.toThrow(
+      await expect(service.RegisterUser(testUsers.customer)).rejects.toThrow(
         'Email already registered'
       );
     });
 
     it('should throw ValidationError for invalid email', async () => {
       await expect(
-        service.register(invalidUsers.invalidEmail as any)
+        service.RegisterUser(invalidUsers.invalidEmail as any)
       ).rejects.toThrow('Valid email is required');
     });
 
     it('should throw ValidationError for short password', async () => {
       await expect(
-        service.register(invalidUsers.shortPassword as any)
+        service.RegisterUser(invalidUsers.shortPassword as any)
       ).rejects.toThrow('at least 8 characters');
     });
 
     it('should throw ValidationError for missing first name', async () => {
       await expect(
-        service.register(invalidUsers.missingFirstName as any)
+        service.RegisterUser(invalidUsers.missingFirstName as any)
       ).rejects.toThrow('First name is required');
     });
   });
@@ -77,12 +77,12 @@ describe('UserService — Unit Tests', () => {
   describe('login()', () => {
     it('should login with correct credentials', async () => {
       const hashedPassword = await bcrypt.hash('CustPass123!', 10);
-      mockRepo.findByEmail.mockResolvedValueOnce({
+      mockRepo.FindByEmail.mockResolvedValueOnce({
         ...mockUser,
         passwordHash: hashedPassword,
       });
 
-      const result = await service.login({
+      const result = await service.LoginUser({
         email: 'customer@ecommerce.test',
         password: 'CustPass123!',
       });
@@ -92,39 +92,39 @@ describe('UserService — Unit Tests', () => {
     });
 
     it('should throw for non-existent user', async () => {
-      mockRepo.findByEmail.mockResolvedValueOnce(null);
+      mockRepo.FindByEmail.mockResolvedValueOnce(null);
 
       await expect(
-        service.login({ email: 'no@user.com', password: 'pass' })
+        service.LoginUser({ email: 'no@user.com', password: 'pass' })
       ).rejects.toThrow('Invalid email or password');
     });
 
     it('should throw for wrong password', async () => {
       const hashedPassword = await bcrypt.hash('correct-password', 10);
-      mockRepo.findByEmail.mockResolvedValueOnce({
+      mockRepo.FindByEmail.mockResolvedValueOnce({
         ...mockUser,
         passwordHash: hashedPassword,
       });
 
       await expect(
-        service.login({ email: mockUser.email, password: 'wrong-password' })
+        service.LoginUser({ email: mockUser.email, password: 'wrong-password' })
       ).rejects.toThrow('Invalid email or password');
     });
 
     it('should throw for deactivated account', async () => {
-      mockRepo.findByEmail.mockResolvedValueOnce({
+      mockRepo.FindByEmail.mockResolvedValueOnce({
         ...mockUser,
         isActive: false,
       });
 
       await expect(
-        service.login({ email: mockUser.email, password: 'anything' })
+        service.LoginUser({ email: mockUser.email, password: 'anything' })
       ).rejects.toThrow('Account is deactivated');
     });
 
     it('should throw for missing credentials', async () => {
       await expect(
-        service.login({ email: '', password: '' })
+        service.LoginUser({ email: '', password: '' })
       ).rejects.toThrow('Email and password are required');
     });
   });
@@ -132,35 +132,35 @@ describe('UserService — Unit Tests', () => {
   // ── getProfile ────────────────────────────────────────────────
   describe('getProfile()', () => {
     it('should return user profile without password', async () => {
-      mockRepo.findById.mockResolvedValueOnce(mockUser);
+      mockRepo.FindById.mockResolvedValueOnce(mockUser);
 
-      const profile = await service.getProfile('user-001');
+      const profile = await service.GetUserProfile('user-001');
 
       expect(profile).not.toHaveProperty('passwordHash');
       expect(profile.email).toBe(mockUser.email);
     });
 
     it('should throw NotFoundError for non-existent user', async () => {
-      mockRepo.findById.mockResolvedValueOnce(null);
+      mockRepo.FindById.mockResolvedValueOnce(null);
 
-      await expect(service.getProfile('nope')).rejects.toThrow('User not found');
+      await expect(service.GetUserProfile('nope')).rejects.toThrow('User not found');
     });
   });
 
   // ── deactivateAccount ─────────────────────────────────────────
   describe('deactivateAccount()', () => {
     it('should deactivate an existing user', async () => {
-      mockRepo.deactivate.mockResolvedValueOnce(true);
+      mockRepo.Deactivate.mockResolvedValueOnce(true);
 
       await expect(
-        service.deactivateAccount('user-001')
+        service.DeactivateUser('user-001')
       ).resolves.toBeUndefined();
     });
 
     it('should throw NotFoundError for non-existent user', async () => {
-      mockRepo.deactivate.mockResolvedValueOnce(false);
+      mockRepo.Deactivate.mockResolvedValueOnce(false);
 
-      await expect(service.deactivateAccount('nope')).rejects.toThrow(
+      await expect(service.DeactivateUser('nope')).rejects.toThrow(
         'User not found'
       );
     });

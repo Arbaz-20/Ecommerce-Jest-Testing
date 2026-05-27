@@ -32,9 +32,9 @@ describe('PaymentService — Unit Tests', () => {
     mockPaymentRepo = new PaymentRepository() as jest.Mocked<PaymentRepository>;
     mockOrderRepo = new OrderRepository() as jest.Mocked<OrderRepository>;
     mockGateway = {
-      charge: jest.fn(),
-      refund: jest.fn(),
-    } as jest.Mocked<PaymentGateway>;
+      Charge: jest.fn(),
+      Refund: jest.fn(),
+    } as unknown as jest.Mocked<PaymentGateway>;
 
     service = new PaymentService(mockPaymentRepo, mockOrderRepo, mockGateway);
   });
@@ -50,9 +50,9 @@ describe('PaymentService — Unit Tests', () => {
     };
 
     it('should process a successful payment', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
-      mockPaymentRepo.findByOrderId.mockResolvedValueOnce(null);
-      mockPaymentRepo.create.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce(mockOrder);
+      mockPaymentRepo.FindByOrderId.mockResolvedValueOnce(null);
+      mockPaymentRepo.Create.mockResolvedValueOnce({
         id: 'pay-001',
         orderId: 'order-001',
         userId: 'user-001',
@@ -64,12 +64,12 @@ describe('PaymentService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      mockGateway.charge.mockResolvedValueOnce({
+      mockGateway.Charge.mockResolvedValueOnce({
         success: true,
         transactionId: 'txn_abc123',
       });
 
-      mockPaymentRepo.updateStatus.mockResolvedValueOnce({
+      mockPaymentRepo.UpdateStatus.mockResolvedValueOnce({
         id: 'pay-001',
         orderId: 'order-001',
         userId: 'user-001',
@@ -82,48 +82,48 @@ describe('PaymentService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      mockOrderRepo.updateStatus.mockResolvedValueOnce(null);
-      mockOrderRepo.setPaymentId.mockResolvedValueOnce();
+      mockOrderRepo.UpdateStatus.mockResolvedValueOnce(null);
+      mockOrderRepo.SetPaymentId.mockResolvedValueOnce();
 
-      const result = await service.processPayment(paymentDto);
+      const result = await service.ProcessPayment(paymentDto);
 
       expect(result.status).toBe('captured');
       expect(result.transactionId).toBe('txn_abc123');
-      expect(mockOrderRepo.updateStatus).toHaveBeenCalledWith('order-001', 'paid');
-      expect(mockOrderRepo.setPaymentId).toHaveBeenCalledWith('order-001', 'pay-001');
+      expect(mockOrderRepo.UpdateStatus).toHaveBeenCalledWith('order-001', 'paid');
+      expect(mockOrderRepo.SetPaymentId).toHaveBeenCalledWith('order-001', 'pay-001');
     });
 
     it('should throw when order not found', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce(null);
+      mockOrderRepo.FindById.mockResolvedValueOnce(null);
 
-      await expect(service.processPayment(paymentDto)).rejects.toThrow(
+      await expect(service.ProcessPayment(paymentDto)).rejects.toThrow(
         'Order not found'
       );
     });
 
     it('should throw when order is not in payable state', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce({
         ...mockOrder,
         status: 'paid',
       });
 
-      await expect(service.processPayment(paymentDto)).rejects.toThrow(
+      await expect(service.ProcessPayment(paymentDto)).rejects.toThrow(
         "in 'paid' state and cannot be paid"
       );
     });
 
     it('should throw when amount does not match order total', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
+      mockOrderRepo.FindById.mockResolvedValueOnce(mockOrder);
 
       await expect(
-        service.processPayment({ ...paymentDto, amount: 50 })
+        service.ProcessPayment({ ...paymentDto, amount: 50 })
       ).rejects.toThrow('does not match order total');
     });
 
     it('should handle gateway failure (card declined)', async () => {
-      mockOrderRepo.findById.mockResolvedValueOnce(mockOrder);
-      mockPaymentRepo.findByOrderId.mockResolvedValueOnce(null);
-      mockPaymentRepo.create.mockResolvedValueOnce({
+      mockOrderRepo.FindById.mockResolvedValueOnce(mockOrder);
+      mockPaymentRepo.FindByOrderId.mockResolvedValueOnce(null);
+      mockPaymentRepo.Create.mockResolvedValueOnce({
         id: 'pay-002',
         orderId: 'order-001',
         userId: 'user-001',
@@ -135,19 +135,19 @@ describe('PaymentService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      mockGateway.charge.mockResolvedValueOnce({
+      mockGateway.Charge.mockResolvedValueOnce({
         success: false,
         errorCode: 'CARD_DECLINED',
         errorMessage: 'Card was declined by the issuer',
       });
 
-      mockPaymentRepo.updateStatus.mockResolvedValueOnce(null);
+      mockPaymentRepo.UpdateStatus.mockResolvedValueOnce(null);
 
-      await expect(service.processPayment(paymentDto)).rejects.toThrow(
+      await expect(service.ProcessPayment(paymentDto)).rejects.toThrow(
         'Card was declined'
       );
 
-      expect(mockPaymentRepo.updateStatus).toHaveBeenCalledWith(
+      expect(mockPaymentRepo.UpdateStatus).toHaveBeenCalledWith(
         'pay-002',
         'failed',
         undefined,
@@ -159,7 +159,7 @@ describe('PaymentService — Unit Tests', () => {
   // ── refundPayment ─────────────────────────────────────────────
   describe('refundPayment()', () => {
     it('should refund a captured payment', async () => {
-      mockPaymentRepo.findById.mockResolvedValueOnce({
+      mockPaymentRepo.FindById.mockResolvedValueOnce({
         id: 'pay-001',
         orderId: 'order-001',
         userId: 'user-001',
@@ -172,12 +172,12 @@ describe('PaymentService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      mockGateway.refund.mockResolvedValueOnce({
+      mockGateway.Refund.mockResolvedValueOnce({
         success: true,
         transactionId: 'ref_xyz',
       });
 
-      mockPaymentRepo.updateStatus.mockResolvedValueOnce({
+      mockPaymentRepo.UpdateStatus.mockResolvedValueOnce({
         id: 'pay-001',
         orderId: 'order-001',
         userId: 'user-001',
@@ -190,16 +190,16 @@ describe('PaymentService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      mockOrderRepo.updateStatus.mockResolvedValueOnce(null);
+      mockOrderRepo.UpdateStatus.mockResolvedValueOnce(null);
 
-      const result = await service.refundPayment('pay-001');
+      const result = await service.RefundPayment('pay-001');
 
       expect(result.status).toBe('refunded');
-      expect(mockOrderRepo.updateStatus).toHaveBeenCalledWith('order-001', 'refunded');
+      expect(mockOrderRepo.UpdateStatus).toHaveBeenCalledWith('order-001', 'refunded');
     });
 
     it('should reject refund on non-captured payment', async () => {
-      mockPaymentRepo.findById.mockResolvedValueOnce({
+      mockPaymentRepo.FindById.mockResolvedValueOnce({
         id: 'pay-001',
         orderId: 'order-001',
         userId: 'user-001',
@@ -211,7 +211,7 @@ describe('PaymentService — Unit Tests', () => {
         updatedAt: new Date(),
       });
 
-      await expect(service.refundPayment('pay-001')).rejects.toThrow(
+      await expect(service.RefundPayment('pay-001')).rejects.toThrow(
         'Only captured payments can be refunded'
       );
     });
@@ -222,25 +222,25 @@ describe('PaymentService — Unit Tests', () => {
     const gateway = new PaymentGateway();
 
     it('should succeed with valid token', async () => {
-      const result = await gateway.charge(100, 'credit_card', 'tok_valid');
+      const result = await gateway.Charge(100, 'credit_card', 'tok_valid');
       expect(result.success).toBe(true);
       expect(result.transactionId).toBeDefined();
     });
 
     it('should fail with tok_fail token', async () => {
-      const result = await gateway.charge(100, 'credit_card', 'tok_fail');
+      const result = await gateway.Charge(100, 'credit_card', 'tok_fail');
       expect(result.success).toBe(false);
       expect(result.errorCode).toBe('CARD_DECLINED');
     });
 
     it('should fail with tok_insufficient token', async () => {
-      const result = await gateway.charge(100, 'credit_card', 'tok_insufficient');
+      const result = await gateway.Charge(100, 'credit_card', 'tok_insufficient');
       expect(result.success).toBe(false);
       expect(result.errorCode).toBe('INSUFFICIENT_FUNDS');
     });
 
     it('should fail for amounts over 10000', async () => {
-      const result = await gateway.charge(15000, 'credit_card', 'tok_valid');
+      const result = await gateway.Charge(15000, 'credit_card', 'tok_valid');
       expect(result.success).toBe(false);
       expect(result.errorCode).toBe('AMOUNT_TOO_LARGE');
     });
